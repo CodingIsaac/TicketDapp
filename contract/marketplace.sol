@@ -53,7 +53,6 @@ contract Marketplace {
         SaleCancelled,
         SoldOut
     }
-    TicketStatus public TicketState;
 
     event newTicket(address indexed buyer, uint256 index);
     event Transfer(
