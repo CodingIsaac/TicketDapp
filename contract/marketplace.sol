@@ -4,17 +4,6 @@ pragma solidity >=0.7.0 <0.9.0;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-// contract EventToken is ERC20 {
-//     constructor(
-//         string memory tokenName,
-//         string memory symbol,
-//         uint256 supply,
-//         address owner
-//     ) ERC20(tokenName, symbol) {
-//         _mint(owner, supply * 10**decimals());
-//     }
-// }
-
 interface IERC20Token {
     function transfer(address, uint256) external returns (bool);
 
@@ -53,49 +42,58 @@ contract Marketplace {
         string venue;
         uint256 price;
         uint256 sold;
-        bool openForSale;
+        uint256 ticketsAvailable;
+        TicketStatus status;
         // EventToken eventToken;
     }
 
     enum TicketStatus {
+        UNDEFINED,
         OnSale,
-        // SaleCancelled,
+        SaleCancelled,
         SoldOut
     }
     TicketStatus public TicketState;
 
-    event newTicket(address indexed buyer, uint index);
-    event Transfer(address indexed ticketSeller, uint index, uint ticketPrice, address indexed ticketBuyer);
+    event newTicket(address indexed buyer, uint256 index);
+    event Transfer(
+        address indexed ticketSeller,
+        uint256 index,
+        uint256 ticketPrice,
+        address indexed ticketBuyer
+    );
 
-    modifier onlyOwner(uint _index){
-        require(msg.sender == eventTicket[_index].owner, "Sorry, you are not the Owner");
+    modifier onlyOwner(uint256 _index) {
+        require(
+            msg.sender == eventTicket[_index].owner,
+            "Sorry, you are not the Owner"
+        );
         _;
     }
 
-    modifier ticketPrice() {
-        require(msg.value > 0, "Zero Ether can't be sent to this address");
-        _;
-    }
+    mapping(uint256 => EventBrite) private eventTicket;
 
-    // modifier notAddressZero() {
-    //     revert(0x0 != msg.sender);
-    //     _;
-    // }
-
-    mapping(uint256 => EventBrite) internal eventTicket;
-
-    function updatedTicket(
-        string memory _name,
-        string memory _image,
-        string memory _description,
-        string memory _venue,
+    /**
+        * @dev allow users to create a sale of tickets for an upcoming event
+        * @notice input data needs to contain valid/not empty values
+     */
+    function createEventTicket(
+        string calldata _name,
+        string calldata _image,
+        string calldata _description,
+        string calldata _venue,
         uint256 _price,
-        bool _openForSale
+        uint256 _ticketsAvailable
     ) public {
+        require(bytes(_name).length > 0, "Empty name");
+        require(bytes(_image).length > 0, "Empty image");
+        require(bytes(_description).length > 0, "Empty description");
+        require(bytes(_venue).length > 0, "Empty venue");
+        require(_ticketsAvailable > 0, "Invalid number for number of tickets available");
         uint256 _sold = 0;
-        // EventToken _eventToken = new EventToken(EventToken, "ETK", address(this));
-
-        eventTicket[ticketLengths] = EventBrite(
+        uint256 eventId = ticketLengths;
+        ticketLengths++;
+        eventTicket[eventId] = EventBrite(
             payable(msg.sender),
             _name,
             _image,
@@ -103,69 +101,87 @@ contract Marketplace {
             _venue,
             _price,
             _sold,
-            _openForSale
+            _ticketsAvailable,
+            TicketStatus.OnSale
         );
-        ticketLengths++;
-        emit newTicket(msg.sender, ticketLengths);
+        emit newTicket(msg.sender, eventId);
     }
 
-    function updatedTicketPrice(uint _index, uint _price) public payable onlyOwner(_index) {
+    /**
+        * @dev allow owner of a ticket's sale to update the price of a ticket
+     */
+    function updatedTicketPrice(uint256 _index, uint256 _price)
+        public
+        payable
+        onlyOwner(_index)
+    {
         eventTicket[_index].price = _price;
     }
 
-    function newVenue(string calldata _venue, uint _price) public  {
-        eventTicket[_price].venue = _venue;
+    /**
+        * @dev allow owner of a ticket's sale to update the venue of the event
+     */
+    function newVenue(string calldata _venue, uint256 _index)
+        public
+        onlyOwner(_index)
+    {
+        eventTicket[_index].venue = _venue;
     }
 
-    function readProduct(uint256 _index)
+    /**
+        * @dev allow owner of a ticket's sale to cancel the sale of tickets
+     */
+    function cancelTicketSale(uint256 _index)
+        public
+        onlyOwner(_index)
+    {
+        eventTicket[_index].status = TicketStatus.SaleCancelled;
+    }
+
+    function readEventTicket(uint256 _index)
         public
         view
-        returns (
-            address payable,
-            string memory,
-            string memory,
-            string memory,
-            string memory,
-            uint256,
-            uint256,
-            bool
-            // EventToken
-        )
+        returns (EventBrite memory)
     {
-        return (
-            eventTicket[_index].owner,
-            eventTicket[_index].name,
-            eventTicket[_index].image,
-            eventTicket[_index].description,
-            eventTicket[_index].venue,
-            eventTicket[_index].price,
-            eventTicket[_index].sold,
-            eventTicket[_index].openForSale
-            // eventTicket[_index].eventToken
-        );
+        return (eventTicket[_index]);
     }
 
-    function buyTicket(uint256 _index) public ticketPrice payable {
-        require(
+
+    /**
+        * @dev allow users to buy tickets of an upcoming event
+        * @param amount the number of tickets to buy
+        * @notice Tickets can only be bought if they haven't sold out yet
+        * @notice amount must be less or equal to the number of tickets currently available
+     */
+    function buyTicket(uint256 _index, uint amount) public payable {
+        EventBrite storage currentEvent = eventTicket[_index];
+        require(currentEvent.ticketsAvailable >= amount, "Not enough tickets available to fulfill this order");
+        require(currentEvent.owner != msg.sender, "You can't buy your own tickets");
+        require(currentEvent.status == TicketStatus.OnSale, "Tickets aren't on sale for this event");
+                require(
             IERC20Token(cUsdTokenAddress).transferFrom(
                 msg.sender,
-                eventTicket[_index].owner,
-                eventTicket[_index].price
+                currentEvent.owner,
+                currentEvent.price
             ),
             "Transfer failed."
         );
-        eventTicket[_index].sold++;
-
-        TicketState == TicketStatus.OnSale;
-
-        emit Transfer(eventTicket[_index].owner, _index, eventTicket[_index].price, msg.sender);
+        uint newSoldAmount = currentEvent.sold + amount;
+        currentEvent.sold = newSoldAmount;
+        uint newTicketsAvailable = currentEvent.ticketsAvailable - amount;
+        currentEvent.ticketsAvailable = newTicketsAvailable;
+        if(currentEvent.ticketsAvailable == 0){
+            currentEvent.status = TicketStatus.SoldOut;
+        }
+        emit Transfer(
+            currentEvent.owner,
+            _index,
+            currentEvent.price,
+            msg.sender
+        );
     }
 
     function getTicketsLength() public view returns (uint256) {
         return (ticketLengths);
     }
-
-    // function getTokenAddress(uint _index) public view returns(address) {
-    //     return address(eventTicket[_index].eventToken);
-    // }
 }
