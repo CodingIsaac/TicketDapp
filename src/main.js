@@ -3,10 +3,8 @@ import { newKitFromWeb3 } from '@celo/contractkit'
 import BigNumber from "bignumber.js"
 import marketPlaceAbi from '../contract/marketplace.abi.json'
 import erc20Abi from "../contract/erc20.abi.json"
-// import EthereumHDKey from 'ethereumjs-wallet/dist/hdkey'
 
 const ERC20_DECIMALS = 18
-// const ERC20_DECIMALS = 18
 const MPContractAddress = "0xf0bcdbe275Dad16Afb0Cd716c9f1322eC5684235"
 const cUSDContractAddress = "0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1"
 
@@ -17,70 +15,6 @@ let defaultAccount
 let celoTestnetChainId=44787
 let celoExplorer = "https://alfajores-blockscout.celo-testnet.org/"
 
-// const products = [
-//     {
-//       name: "Giant BBQ",
-//       image: "https://i.imgur.com/yPreV19.png",
-//       description: `Grilled chicken, beef, fish, sausages, bacon, 
-//         vegetables served with chips.`,
-//       location: "Kimironko Market",
-//       owner: "0x32Be343B94f860124dC4fEe278FDCBD38C102D88",
-//       price: 3,
-//       sold: 27,
-//       index: 0,
-//     },
-//     {
-//       name: "BBQ Chicken",
-//       image: "https://i.imgur.com/NMEzoYb.png",
-//       description: `French fries and grilled chicken served with gacumbari 
-//         and avocados with cheese.`,
-//       location: "Afrika Fresh KG 541 St",
-//       owner: "0x3275B7F400cCdeBeDaf0D8A9a7C8C1aBE2d747Ea",
-//       price: 4,
-//       sold: 12,
-//       index: 1,
-//     },
-//     {
-//       name: "Beef burrito",
-//       image: "https://i.imgur.com/RNlv3S6.png",
-//       description: `Homemade tortilla with your choice of filling, cheese, 
-//         guacamole salsa with Mexican refried beans and rice.`,
-//       location: "Asili - KN 4 St",
-//       owner: "0x2EF48F32eB0AEB90778A2170a0558A941b72BFFb",
-//       price: 2,
-//       sold: 35,
-//       index: 2,
-//     },
-//     {
-//       name: "Barbecue Pizza",
-//       image: "https://i.imgur.com/fpiDeFd.png",
-//       description: `Barbecue Chicken Pizza: Chicken, gouda, pineapple, onions 
-//         and house-made BBQ sauce.`,
-//       location: "Kigali Hut KG 7 Ave",
-//       owner: "0x2EF48F32eB0AEB90778A2170a0558A941b72BFFb",
-//       price: 1,
-//       sold: 2,
-//       index: 3,
-//     },
-//   ]
-
-// const connectCeloWallet = async function () {
-//     if (window.celo) {
-//         notification("⚠️ Please approve this DApp to use it.")
-//       try {
-//         await window.celo.enable()
-//         notificationOff()
-  
-//         const web3 = new Web3(window.celo)
-//         kit = newKitFromWeb3(web3)
-  
-//       } catch (error) {
-//         notification(`⚠️ ${error}.`)
-//       }
-//     } else {
-//       notification("⚠️ Please install the CeloExtensionWallet.")
-//     }
-//   }
 
 
 
@@ -105,7 +39,6 @@ const connectCeloWallet = async function () {
     }
   }
 
-//   c
 
 async function approve(_price) {
     const cUSDContract = new kit.web3.eth.Contract(erc20Abi, cUSDContractAddress)
@@ -188,14 +121,14 @@ const getBalance = async function () {
       document.getElementById("newProductDescription").value,
       document.getElementById("newVenue").value,
       new BigNumber(document.getElementById("newPrice").value)
-    //   new BigNumber(document.getElementById("").value
+    
       .shiftedBy(ERC20_DECIMALS)
       .toString()
     ]
     notification(`⌛ Adding "${params[0]}"...`)
 
     try {
-        const result = await contract.methods
+         await contract.methods
           .writeProduct(...params)
           .send({ from: kit.defaultAccount })
       } catch (error) {
@@ -299,7 +232,7 @@ function identiconTemplate(_address) {
       location: document.getElementById("newVenue").value,
       price: document.getElementById("newPrice").value,
       sold: 0,
-      index: products.length,
+      index: products.length ||0,
     }
     products.push(_product)
     notification(`🎉 You successfully added "${_product.name}".`)
